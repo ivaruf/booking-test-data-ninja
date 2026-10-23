@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Booking Test Data Ninja",
+  "version": "1.0.0",
+  "description": "A sleepy ninja that fills the origo-booking 'på vegne av' form with random but valid test data.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.booking-narnia-dev.oslo.systems/*",
+        "http://localhost/*"
+      ],
+      "js": ["data.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
