@@ -8,7 +8,7 @@
   const D = window.NinjaData;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Global tempo: lower is faster. Scales every animation and pause.
-  const SPEED = 0.6;
+  const SPEED = 0.85;
   const ms = (t) => (reducedMotion ? 0 : t * SPEED);
   const sleep = (t) => new Promise((resolve) => setTimeout(resolve, ms(t)));
   const anim = (el, frames, duration, extra = {}) =>
@@ -245,14 +245,14 @@
       { fill: 'none', easing }
     ).finished;
 
-  // Crouch, then leap to the top middle of the screen with a double somersault.
+  // Crouch, then leap straight up to the top of the screen with a double somersault.
   const leapUp = async () => {
     await anim(svg, [{ scale: '1 1' }, { scale: '1.2 .78' }], 160, { fill: 'none', easing: 'ease-in' }).finished;
     puffs(feet());
     const r = ninja.getBoundingClientRect();
     ninja.classList.add('high');
     await Promise.all([
-      moveNinja({ x: innerWidth / 2 - r.width / 2 - r.left, y: 12 - r.top }, 650, 'cubic-bezier(.2,.9,.3,1)'),
+      moveNinja({ x: 0, y: 12 - r.top }, 650, 'cubic-bezier(.2,.9,.3,1)'),
       somersault(2, 650),
     ]);
     if (!reducedMotion) {
@@ -281,16 +281,16 @@
       [{ translate: '0 0' }, { translate: '0 6px' }, { translate: '0 -4px' }, { translate: '0 2px' }, { translate: '0 0' }],
       { duration: ms(320) }
     );
-    say('Superheltlanding! 🦸', 1300);
+    say('Superheltlanding! 🦸', 1000);
 
     const pose = [0, 0.12, 0.75, 1];
-    anim(arm, [{ rotate: '0deg' }, { rotate: '-80deg' }, { rotate: '-80deg' }, { rotate: '0deg' }].map((f, i) => ({ ...f, offset: pose[i] })), 1300, {
+    anim(arm, [{ rotate: '0deg' }, { rotate: '-80deg' }, { rotate: '-80deg' }, { rotate: '0deg' }].map((f, i) => ({ ...f, offset: pose[i] })), 1000, {
       fill: 'none',
     });
     await anim(
       svg,
       [{ scale: '1.3 .62' }, { scale: '1.18 .74' }, { scale: '1.18 .74' }, { scale: '1 1' }].map((f, i) => ({ ...f, offset: pose[i] })),
-      1300,
+      1000,
       { fill: 'none', easing: 'ease-out' }
     ).finished;
   };
@@ -331,7 +331,7 @@
       const y = (1 - t) ** 2 * from.y + 2 * (1 - t) * t * ctrl.y + t * t * to.y;
       frames.push({ transform: `translate(${x}px, ${y}px) rotate(${spin * t}deg)` });
     }
-    const flight = anim(star, frames, 340, { easing: 'linear' });
+    const flight = anim(star, frames, 420, { easing: 'linear' });
     trail(star, flight);
     await flight.finished;
     return star;
@@ -390,7 +390,7 @@
   const settle = async (el) => {
     let last = el.getBoundingClientRect().top;
     for (let i = 0; i < 25; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise((resolve) => setTimeout(resolve, 35));
       const top = el.getBoundingClientRect().top;
       if (Math.abs(top - last) < 1) return;
       last = top;
@@ -418,7 +418,7 @@
   const aimPoint = (el) => {
     const r = el.getBoundingClientRect();
     if (el.type === 'radio') return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-    return { x: r.left + Math.min(28, r.width / 2), y: r.top + r.height / 2 };
+    return { x: r.left + Math.min(90, r.width * 0.3), y: r.top + r.height / 2 };
   };
 
   // Throws a star at the element, then clicks it (radios) or types `value` into it.
@@ -455,8 +455,8 @@
 
     const p = D.person();
     const tasks = [];
-    const radio = (name) => {
-      const value = D.pick(radios(name))?.value;
+    const radio = (name, skip = []) => {
+      const value = D.pick(radios(name).filter((r) => !skip.includes(r.value)))?.value;
       tasks.push({ find: () => radios(name).find((r) => r.value === value) });
       return value;
     };
@@ -469,17 +469,16 @@
       text('participants', D.participants());
       text('shortDescription', D.description());
       radio('hasUsedLocationBefore');
-      applicantType = radio('applicantType');
+      // Organisations need an org number that the dev Brreg lookup accepts, so skip them.
+      applicantType = radio('applicantType', ['organisasjon']);
     }
 
     text('applicantName', p.name);
     text('applicantEmail', p.email);
     text('applicantPhoneNo', p.phone);
 
-    if (applicantType === 'organisasjon') {
-      text('organisasjonsnummer', D.orgNumber());
-      return tasks;
-    }
+    // LoppemarkedForm: the org number is left for you to fill in.
+    if (applicantType === 'organisasjon') return tasks;
     if (applicantType === 'frivilligLagForening') text('orgName', D.volunteerOrg());
     if (applicantType === 'etatVirksomhetKommunen') text('orgName', D.municipalOrg());
     text('addressStreetName', p.street);
@@ -504,7 +503,7 @@
       while (i < tasks.length) {
         const el = tasks[i].find();
         if (!el || !inView(el)) break;
-        await sleep(90);
+        await sleep(170);
         volley.push(strike(el, tasks[i++].value));
       }
       await Promise.all(volley);
@@ -522,7 +521,7 @@
       await popBubble();
       ninja.classList.replace('asleep', 'awake');
       anim(exclaim, [{ opacity: 0, translate: '0 10px', scale: 0.4 }, { opacity: 1, translate: '0 0', scale: 1.2, offset: 0.3 }, { opacity: 1, scale: 1, offset: 0.8 }, { opacity: 0 }], 900);
-      await sleep(350);
+      await sleep(120);
 
       const tasks = plan();
       if (tasks) {
@@ -531,7 +530,7 @@
         await pepper(tasks);
         await heroLanding();
         say('Ferdig! Trykk «Opprett booking»', 2400);
-        await sleep(700);
+        await sleep(250);
       } else {
         say('Hmm… finner ikke skjemaet 🤔', 2400);
         await sleep(2400);

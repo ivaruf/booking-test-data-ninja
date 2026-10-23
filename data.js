@@ -28,8 +28,6 @@ window.NinjaData = (() => {
     'Utdanningsetaten', 'Bydel Gamle Oslo', 'Kulturetaten', 'Bydel Frogner', 'Deichman', 'Bydel Grorud',
     'Origo',
   ];
-  // Real, active organisations so the Brreg lookup succeeds.
-  const ORG_NUMBERS = ['958935420', '923609016', '984851006'];
   const OTHER_ACTIVITIES = [
     'Ninjatrening', 'Lego-workshop', 'Strikkekafé', 'Brettspillkveld', 'Origami-kurs', 'Sjakkturnering',
   ];
@@ -68,6 +66,5 @@ window.NinjaData = (() => {
     otherActivity: () => pick(OTHER_ACTIVITIES),
     volunteerOrg: () => pick(VOLUNTEER_ORGS),
     municipalOrg: () => pick(MUNICIPAL_ORGS),
-    orgNumber: () => pick(ORG_NUMBERS),
   };
 })();

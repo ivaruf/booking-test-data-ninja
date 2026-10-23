@@ -4,7 +4,7 @@
 
 A Chrome extension for the origo-booking admin. A chibi ninja sleeps at the bottom of the
 "ny booking på vegne av" page (`/ny-booking/pa-vegne-av`). Click him and he wakes up, leaps
-to the top of the screen with a double somersault, and peppers the form with shurikens while
+straight up to the top of the screen with a double somersault, and peppers the form with shurikens while
 the page scrolls beneath him. Each field he hits gets random but valid test data. Then he drops
 down into a superhero landing and goes straight back to sleep.
 
@@ -43,13 +43,13 @@ The fields mirror `SchoolForm.tsx` and `LoppemarkedForm.tsx` in origo-booking
 | Antall deltakere | 4–60 |
 | Kort beskrivelse | A short sentence that says it's test data |
 | Lånt rom tidligere | Random option |
-| Hvem søker | Random applicant type |
+| Hvem søker | Random applicant type, except *Organisasjon med organisasjonsnummer* |
 | Navn, e-post, telefon | Norwegian name, `fornavn.etternavnNNN@example.com`, 8 digits starting with 4 or 9 |
-| Organisasjonsnummer | A real organisation number, so the Brreg lookup succeeds |
 | Navn på aktør / virksomhet | Made-up volunteer group, or a real Oslo kommune agency |
 | Adresse, postnummer, poststed | Oslo street with house number, and a real Oslo postcode |
 
-The loppemarked version of the form only asks for applicant details and an organisation number, and he handles that too.
+He skips organisations because the Brreg lookup in dev rejects real organisation numbers. The loppemarked
+version of the form always needs one, so there he fills in the applicant details and leaves the organisation number for you.
 
 ## Customising
 
@@ -75,8 +75,6 @@ The loppemarked version of the form only asks for applicant details and an organ
   the extension is enabled. Reload the page after installing.
 - **He says "Hmm… finner ikke skjemaet":** the form hasn't loaded yet, or its markup changed. Wait a moment and try again.
 - **He says "Au! Noe gikk galt":** the browser console has the error, tagged `[Booking Test Data Ninja]`.
-- **The organisation lookup fails:** update `ORG_NUMBERS` in `data.js` to organisation numbers
-  that the dev environment can look up.
 
 ## Sharing
 
