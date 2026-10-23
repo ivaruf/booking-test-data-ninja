@@ -7,7 +7,9 @@
   const TARGET_PATH = '/ny-booking/pa-vegne-av';
   const D = window.NinjaData;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const ms = (t) => (reducedMotion ? 0 : t);
+  // Global tempo: lower is faster. Scales every animation and pause.
+  const SPEED = 0.6;
+  const ms = (t) => (reducedMotion ? 0 : t * SPEED);
   const sleep = (t) => new Promise((resolve) => setTimeout(resolve, ms(t)));
   const anim = (el, frames, duration, extra = {}) =>
     el.animate(frames, { duration: ms(duration), easing: 'ease-out', fill: 'forwards', ...extra });
