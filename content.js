@@ -368,8 +368,9 @@
 
   // ---------- form filling ----------
 
+  // PktTextarea renders its <textarea> with the id `${id}-input`, so try that too.
   const field = (id) => {
-    const el = document.getElementById(id);
+    const el = document.getElementById(id) ?? document.getElementById(`${id}-input`);
     if (!el) return null;
     return el.matches('input, textarea') ? el : el.querySelector('input, textarea');
   };
@@ -457,10 +458,10 @@
     const tasks = [];
     const radio = (name, skip = []) => {
       const value = D.pick(radios(name).filter((r) => !skip.includes(r.value)))?.value;
-      tasks.push({ find: () => radios(name).find((r) => r.value === value) });
+      tasks.push({ label: `${name}=${value}`, find: () => radios(name).find((r) => r.value === value) });
       return value;
     };
-    const text = (id, value) => tasks.push({ find: () => field(id), value });
+    const text = (id, value) => tasks.push({ label: id, find: () => field(id), value });
 
     let applicantType = 'organisasjon'; // LoppemarkedForm is always an organisation
     if (isSchoolForm) {
@@ -494,7 +495,7 @@
     while (i < tasks.length) {
       const first = await waitFor(tasks[i].find, 3000);
       if (!first) {
-        console.warn('[Booking Test Data Ninja] Fant ikke feltet, hopper over', tasks[i]);
+        console.warn('[Booking Test Data Ninja] Fant ikke feltet, hopper over:', tasks[i].label);
         i++;
         continue;
       }
