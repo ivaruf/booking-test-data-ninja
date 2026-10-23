@@ -3,9 +3,10 @@
 ![The ninja asleep, a shuriken, and the ninja awake](docs/banner.png)
 
 A Chrome extension for the origo-booking admin. A chibi ninja sleeps at the bottom of the
-"ny booking på vegne av" page (`/ny-booking/pa-vegne-av`). Click him and he wakes up, runs
-along the bottom of the screen, and throws shurikens at the form. Each field he hits gets
-random but valid test data.
+"ny booking på vegne av" page (`/ny-booking/pa-vegne-av`). Click him and he wakes up, leaps
+to the top of the screen with a double somersault, and peppers the form with shurikens while
+the page scrolls beneath him. Each field he hits gets random but valid test data. Then he drops
+down into a superhero landing and goes straight back to sleep.
 
 He fills the form but never submits it. You check the result and click **Opprett booking** yourself.
 
@@ -54,8 +55,8 @@ The loppemarked version of the form only asks for applicant details and an organ
 
 - **Test data** lives in `data.js`: names, streets, postcodes, organisations and descriptions.
 - **Speed:** change `SPEED` at the top of `content.js`. Lower is faster, so `0.4` is frantic and `1` is leisurely.
-- **New form fields:** add a `strike(...)` call to `fillForm` in `content.js`. Text fields are
-  found by their `id`, and radio groups by their `name`.
+- **New form fields:** add a `text(id, value)` or `radio(name)` line to `plan` in `content.js`.
+  Text fields are found by their `id`, and radio groups by their `name`.
 - After you edit anything, reload the extension in `chrome://extensions` and refresh the page.
 
 ## How it works
@@ -64,7 +65,8 @@ The loppemarked version of the form only asks for applicant details and an organ
 - Animations use the Web Animations API, and the ninja and shuriken are inline SVG.
 - Values are set with the native input value setter and a real `input` event, so React and
   react-hook-form register the changes. Radio buttons get a real click.
-- Fields that only appear after a choice, like the applicant details, are awaited before he throws at them.
+- All random choices are made up front. He throws at every visible field in one volley, and fields
+  that only appear after a choice, like the applicant details, are hit in the next volley.
 - If your system is set to reduce motion, he skips the animations and fills the form instantly.
 
 ## Troubleshooting

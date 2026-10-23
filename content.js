@@ -88,6 +88,10 @@
   border: 2px solid #1b1f2b; border-radius: 14px; padding: 6px 10px; font: 700 13px/1.2 system-ui, sans-serif;
   box-shadow: 3px 3px 0 #1b1f2b; transform-origin: 10% 100%; }
 .speech::after { content: ''; position: absolute; left: 14px; top: 100%; border: 7px solid transparent; border-top-color: #1b1f2b; }
+.high .speech { bottom: auto; top: calc(100% + 8px); transform-origin: 10% 0; }
+.high .speech::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #1b1f2b; }
+.shockwave { position: fixed; width: 60px; height: 16px; margin: -8px 0 0 -30px; border-radius: 50%;
+  border: 3px solid rgba(80, 90, 115, .55); }
 .exclaim { position: absolute; left: 42%; top: -34px; font: 900 32px/1 system-ui, sans-serif; color: #e63946;
   -webkit-text-stroke: 1px #1b1f2b; opacity: 0; }
 .star { position: fixed; left: 0; top: 0; width: 28px; height: 28px; margin: -14px 0 0 -14px;
@@ -218,52 +222,77 @@
     burst({ x: r.left + r.width / 2, y: r.top + r.height / 2 }, ['#bde0fe', '#8ecae6', '#ffffff'], 8, 24);
   };
 
-  const jump = () =>
+  // The ninja's offset from his sleeping spot, and the hover bob while he's up top.
+  let pos = { x: 0, y: 0 };
+  let bob = null;
+
+  const moveNinja = (to, duration, easing) => {
+    const move = anim(ninja, [{ translate: `${pos.x}px ${pos.y}px` }, { translate: `${to.x}px ${to.y}px` }], duration, {
+      easing,
+    });
+    pos = to;
+    return move.finished;
+  };
+
+  const somersault = (turns, duration, easing = 'ease-out') =>
     anim(
       svg,
       [
-        { translate: '0 0', scale: '1 1' },
-        { translate: '0 0', scale: '1.15 .85', offset: 0.2 },
-        { translate: '0 -46px', scale: '.92 1.08', offset: 0.55 },
-        { translate: '0 0', scale: '1.12 .88', offset: 0.85 },
-        { translate: '0 0', scale: '1 1' },
+        { rotate: '0deg', transformOrigin: '50% 55%' },
+        { rotate: `${-360 * turns}deg`, transformOrigin: '50% 55%' },
       ],
-      620,
-      { fill: 'none', easing: 'ease-in-out' }
+      duration,
+      { fill: 'none', easing }
     ).finished;
 
-  const flip = async () => {
+  // Crouch, then leap to the top middle of the screen with a double somersault.
+  const leapUp = async () => {
+    await anim(svg, [{ scale: '1 1' }, { scale: '1.2 .78' }], 160, { fill: 'none', easing: 'ease-in' }).finished;
     puffs(feet());
-    await anim(
-      svg,
-      [
-        { translate: '0 0', rotate: '0deg', transformOrigin: '50% 60%' },
-        { translate: '0 -80px', rotate: '-180deg', transformOrigin: '50% 60%', offset: 0.5 },
-        { translate: '0 0', rotate: '-360deg', transformOrigin: '50% 60%' },
-      ],
-      800,
-      { fill: 'none', easing: 'cubic-bezier(.3,.6,.4,1)' }
-    ).finished;
-    puffs(feet());
+    const r = ninja.getBoundingClientRect();
+    ninja.classList.add('high');
+    await Promise.all([
+      moveNinja({ x: innerWidth / 2 - r.width / 2 - r.left, y: 12 - r.top }, 650, 'cubic-bezier(.2,.9,.3,1)'),
+      somersault(2, 650),
+    ]);
+    if (!reducedMotion) {
+      bob = svg.animate([{ translate: '0 0' }, { translate: '0 7px' }], {
+        duration: 500,
+        iterations: Infinity,
+        direction: 'alternate',
+        easing: 'ease-in-out',
+      });
+    }
   };
 
-  // Dashes along the bottom of the screen so the ninja stands below-left of the target.
-  let ninjaX = 0;
-  const HOME_LEFT = 20;
-  const dashTo = async (targetX) => {
-    const width = ninja.getBoundingClientRect().width;
-    const left = Math.min(Math.max(targetX - 160, HOME_LEFT), innerWidth - width - 20);
-    const dx = left - HOME_LEFT;
-    if (Math.abs(dx - ninjaX) < 60) return;
-    puffs(feet());
-    const lean = dx > ninjaX ? '12deg' : '-12deg';
-    anim(svg, [{ rotate: '0deg' }, { rotate: lean, offset: 0.3 }, { rotate: lean, offset: 0.7 }, { rotate: '0deg' }], 300, {
+  // Drop back down with a flip and stick a superhero landing.
+  const heroLanding = async () => {
+    bob?.cancel();
+    bob = null;
+    ninja.classList.remove('high');
+    await Promise.all([moveNinja({ x: 0, y: 0 }, 480, 'cubic-bezier(.55,0,.9,.5)'), somersault(1, 480, 'ease-in')]);
+
+    const p = feet();
+    puffs(p);
+    burst(p, ['#8d99ae', '#adb5bd', '#6c757d'], 10, 60);
+    const wave = placeAt(make('div', 'shockwave'), p);
+    remove(wave, anim(wave, [{ scale: 0.4, opacity: 1 }, { scale: 4, opacity: 0 }], 600));
+    document.documentElement.animate(
+      [{ translate: '0 0' }, { translate: '0 6px' }, { translate: '0 -4px' }, { translate: '0 2px' }, { translate: '0 0' }],
+      { duration: ms(320) }
+    );
+    say('Superheltlanding! 🦸', 1300);
+
+    const pose = [0, 0.12, 0.75, 1];
+    anim(arm, [{ rotate: '0deg' }, { rotate: '-80deg' }, { rotate: '-80deg' }, { rotate: '0deg' }].map((f, i) => ({ ...f, offset: pose[i] })), 1300, {
       fill: 'none',
     });
-    await anim(ninja, [{ translate: `${ninjaX}px 0` }, { translate: `${dx}px 0` }], 300, {
-      easing: 'cubic-bezier(.5,0,.2,1)',
-    }).finished;
-    ninjaX = dx;
+    await anim(
+      svg,
+      [{ scale: '1.3 .62' }, { scale: '1.18 .74' }, { scale: '1.18 .74' }, { scale: '1 1' }].map((f, i) => ({ ...f, offset: pose[i] })),
+      1300,
+      { fill: 'none', easing: 'ease-out' }
+    ).finished;
   };
 
   const swingArm = () =>
@@ -289,9 +318,11 @@
   const throwStar = async (to) => {
     const from = hand();
     swingArm();
-    await sleep(150);
+    await sleep(60);
     const star = placeAt(make('div', 'star', SHURIKEN_SVG), { x: 0, y: 0 });
-    const ctrl = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - 80 - Math.random() * 100 };
+    // Curve off to a random side of the straight line, so a volley fans out.
+    const bend = (Math.random() < 0.5 ? -1 : 1) * (0.15 + Math.random() * 0.2);
+    const ctrl = { x: (from.x + to.x) / 2 - (to.y - from.y) * bend, y: (from.y + to.y) / 2 + (to.x - from.x) * bend };
     const spin = 1080 + Math.random() * 360;
     const frames = [];
     for (let i = 0, n = 24; i <= n; i++) {
@@ -300,7 +331,7 @@
       const y = (1 - t) ** 2 * from.y + 2 * (1 - t) * t * ctrl.y + t * t * to.y;
       frames.push({ transform: `translate(${x}px, ${y}px) rotate(${spin * t}deg)` });
     }
-    const flight = anim(star, frames, 440, { easing: 'linear' });
+    const flight = anim(star, frames, 340, { easing: 'linear' });
     trail(star, flight);
     await flight.finished;
     return star;
@@ -325,7 +356,7 @@
       { duration: ms(260) }
     );
 
-    if (Math.random() < 0.45) {
+    if (Math.random() < 0.25) {
       const pow = placeAt(make('div', 'pow'), { x: p.x + 14, y: p.y - 34 });
       pow.textContent = D.pick(['Hai!', 'Tsjak!', 'Zing!', 'Vups!', 'Shing!', 'Bam!']);
       remove(
@@ -392,50 +423,92 @@
 
   // Throws a star at the element, then clicks it (radios) or types `value` into it.
   const strike = async (el, value) => {
-    if (!el) return null;
-    el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
-    await settle(el);
-    await dashTo(aimPoint(el).x);
     const p = aimPoint(el);
     const star = await throwStar(p);
     impact(el, star, p);
     if (value === undefined) el.click();
     else await typeInto(el, value);
-    await sleep(120);
-    return el;
   };
 
-  // Mirrors SchoolForm.tsx and LoppemarkedForm.tsx in origo-booking.
-  const fillForm = async () => {
+  // Field top must be below the hovering ninja.
+  const topMargin = () => ninja.getBoundingClientRect().bottom + 24;
+  const inView = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.top >= topMargin() - 24 && r.bottom <= innerHeight - 8;
+  };
+
+  // Scrolls so the element sits just below the ninja, with a quick spin while the page moves.
+  const scrollUnder = async (el) => {
+    if (inView(el)) return;
+    const previousMargin = el.style.scrollMarginTop;
+    el.style.scrollMarginTop = `${topMargin()}px`;
+    el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    await Promise.all([settle(el), somersault(1, 380)]);
+    el.style.scrollMarginTop = previousMargin;
+  };
+
+  // Mirrors SchoolForm.tsx and LoppemarkedForm.tsx in origo-booking. All random choices are made up
+  // front; fields that only render after an earlier choice are looked up lazily via `find`.
+  const plan = () => {
     const isSchoolForm = radios('activityType').length > 0;
-    if (!isSchoolForm && !field('applicantName')) return false;
+    if (!isSchoolForm && !field('applicantName')) return null;
 
     const p = D.person();
+    const tasks = [];
+    const radio = (name) => {
+      const value = D.pick(radios(name))?.value;
+      tasks.push({ find: () => radios(name).find((r) => r.value === value) });
+      return value;
+    };
+    const text = (id, value) => tasks.push({ find: () => field(id), value });
+
     let applicantType = 'organisasjon'; // LoppemarkedForm is always an organisation
     if (isSchoolForm) {
-      const activity = await strike(D.pick(radios('activityType')));
-      if (activity?.value === 'annet') await strike(await waitFor(() => field('otherActivityType')), D.otherActivity());
-      await strike(D.pick(radios('targetAudience')));
-      await strike(field('participants'), D.participants());
-      await strike(field('shortDescription'), D.description());
-      await strike(D.pick(radios('hasUsedLocationBefore')));
-      applicantType = (await strike(D.pick(radios('applicantType'))))?.value;
+      if (radio('activityType') === 'annet') text('otherActivityType', D.otherActivity());
+      radio('targetAudience');
+      text('participants', D.participants());
+      text('shortDescription', D.description());
+      radio('hasUsedLocationBefore');
+      applicantType = radio('applicantType');
     }
 
-    await strike(await waitFor(() => field('applicantName')), p.name);
-    await strike(field('applicantEmail'), p.email);
-    await strike(field('applicantPhoneNo'), p.phone);
+    text('applicantName', p.name);
+    text('applicantEmail', p.email);
+    text('applicantPhoneNo', p.phone);
 
     if (applicantType === 'organisasjon') {
-      await strike(await waitFor(() => field('organisasjonsnummer')), D.orgNumber());
-      return true;
+      text('organisasjonsnummer', D.orgNumber());
+      return tasks;
     }
-    if (applicantType === 'frivilligLagForening') await strike(await waitFor(() => field('orgName')), D.volunteerOrg());
-    if (applicantType === 'etatVirksomhetKommunen') await strike(await waitFor(() => field('orgName')), D.municipalOrg());
-    await strike(await waitFor(() => field('addressStreetName')), p.street);
-    await strike(field('addressPostCode'), p.postCode);
-    await strike(field('addressPostalName'), p.postalName);
-    return true;
+    if (applicantType === 'frivilligLagForening') text('orgName', D.volunteerOrg());
+    if (applicantType === 'etatVirksomhetKommunen') text('orgName', D.municipalOrg());
+    text('addressStreetName', p.street);
+    text('addressPostCode', p.postCode);
+    text('addressPostalName', p.postalName);
+    return tasks;
+  };
+
+  // Fires volleys: scroll to the next field, then pepper every following field that is already
+  // rendered and on screen. Fields that appear because of a click in this volley go in the next one.
+  const pepper = async (tasks) => {
+    let i = 0;
+    while (i < tasks.length) {
+      const first = await waitFor(tasks[i].find, 3000);
+      if (!first) {
+        console.warn('[Booking Test Data Ninja] Fant ikke feltet, hopper over', tasks[i]);
+        i++;
+        continue;
+      }
+      await scrollUnder(first);
+      const volley = [strike(first, tasks[i++].value)];
+      while (i < tasks.length) {
+        const el = tasks[i].find();
+        if (!el || !inView(el)) break;
+        await sleep(90);
+        volley.push(strike(el, tasks[i++].value));
+      }
+      await Promise.all(volley);
+    }
   };
 
   // ---------- wake up! ----------
@@ -449,24 +522,26 @@
       await popBubble();
       ninja.classList.replace('asleep', 'awake');
       anim(exclaim, [{ opacity: 0, translate: '0 10px', scale: 0.4 }, { opacity: 1, translate: '0 0', scale: 1.2, offset: 0.3 }, { opacity: 1, scale: 1, offset: 0.8 }, { opacity: 0 }], 900);
-      await jump();
-      say(D.pick(['Hai! 🥷', 'Ninja-modus!', 'Testdata, kom hit!', 'Jeg var ikke sovende!']));
-      await sleep(450);
+      await sleep(350);
 
-      if (await fillForm()) {
-        await dashTo(0);
-        say('Ferdig! Sjekk og trykk «Opprett booking»', 3200);
-        await flip();
+      const tasks = plan();
+      if (tasks) {
+        await leapUp();
+        say(D.pick(['Hai! 🥷', 'Ninja-modus!', 'Testdata, kom hit!', 'Jeg sov ikke!']), 1200);
+        await pepper(tasks);
+        await heroLanding();
+        say('Ferdig! Trykk «Opprett booking»', 2400);
+        await sleep(700);
       } else {
         say('Hmm… finner ikke skjemaet 🤔', 2400);
+        await sleep(2400);
       }
-      await sleep(2600);
     } catch (e) {
       console.error('[Booking Test Data Ninja]', e);
       say('Au! Noe gikk galt (se konsollen)', 2400);
-      await sleep(2400);
+      await sleep(1500);
+      if (pos.y !== 0) await heroLanding();
     } finally {
-      await dashTo(0);
       ninja.classList.replace('awake', 'asleep');
       busy = false;
     }
