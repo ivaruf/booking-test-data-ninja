@@ -370,9 +370,11 @@
 
   // PktTextarea renders its <textarea> with the id `${id}-input`, so try that too.
   const field = (id) => {
-    const el = document.getElementById(id) ?? document.getElementById(`${id}-input`);
-    if (!el) return null;
-    return el.matches('input, textarea') ? el : el.querySelector('input, textarea');
+    for (const candidate of [id, `${id}-input`]) {
+      const el = document.getElementById(candidate);
+      if (el?.matches('input, textarea')) return el;
+    }
+    return document.getElementById(id)?.querySelector('input, textarea') ?? null;
   };
 
   const radios = (name) => [...document.querySelectorAll(`input[type="radio"][name="${name}"]`)];
@@ -493,7 +495,7 @@
   const pepper = async (tasks) => {
     let i = 0;
     while (i < tasks.length) {
-      const first = await waitFor(tasks[i].find, 3000);
+      const first = await waitFor(tasks[i].find, 1500);
       if (!first) {
         console.warn('[Booking Test Data Ninja] Fant ikke feltet, hopper over:', tasks[i].label);
         i++;
